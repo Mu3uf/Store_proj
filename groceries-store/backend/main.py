@@ -5,6 +5,36 @@ import models, schemas, auth
 from database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
+from database import SessionLocal # تأكد من استيراد SessionLocal إذا لم تكن موجودة
+import auth
+
+models.Base.metadata.create_all(bind=engine)
+
+# دالة لإنشاء حساب أدمن افتراضي تلقائياً عند عدم وجوده لضمان عدم ضياعه
+def create_default_admin():
+    db = SessionLocal()
+    try:
+        # ابحث عن حساب الأدمن الثابت (مثلاً باسم admin أو رقم محدد)
+        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+        if not admin_user:
+            hashed_pwd = auth.get_password_hash("admin1234") # كلمة السر الافتراضية للأدمن
+            new_admin = models.User(
+                username="admin",
+                phone="0700000000",
+                shop_name="مدير المتجر الرئيسي",
+                hashed_password=hashed_pwd,
+                role="admin" # تحديد الصلاحية أدمن
+            )
+            db.add(new_admin)
+            db.commit()
+            print("تم إنشاء حساب الأدمن الافتراضي بنجاح!")
+    except Exception as e:
+        print(f"خطأ أثناء إنشاء الأدمن الافتراضي: {e}")
+    finally:
+        db.close()
+
+# تنفيذ الدالة عند تشغيل السيرفر
+create_default_admin()
 
 app = FastAPI(title="متجر البقوليات والبهارات")
 
