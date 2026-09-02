@@ -5,7 +5,7 @@ export default function Navbar({ user, cartCount, onOpenAuth, onOpenCart }) {
   return (
     <nav className="bg-emerald-800 text-white p-4 shadow-lg sticky top-0 z-50" dir="rtl">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-2xl font-black tracking-wide">متجر الجملة (بقوليات وبهارات)</h1>
+        <h1 className="text-2xl font-black tracking-wide">بهاراتي</h1>
         <div className="flex items-center gap-5">
           <div className="relative cursor-pointer" onClick={onOpenCart}>
             <ShoppingBag className="w-7 h-7" />

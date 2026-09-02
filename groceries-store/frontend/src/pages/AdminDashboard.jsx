@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, Edit3, PackageCheck, X, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Plus, Trash2, Edit3, PackageCheck, X, Upload, CheckCircle2 } from 'lucide-react';
+
+const API_URL = 'https://store-proj.onrender.com';
 
 export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,6 +14,38 @@ export default function AdminDashboard() {
   ]);
 
   const [formData, setFormData] = useState({ name: '', category_id: 1, price_per_kg: '', image_url: '' });
+
+  // === طلبات العملاء (بيانات حقيقية من الباك اند) ===
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoadingOrders(true);
+      const res = await axios.get(`${API_URL}/admin/orders`);
+      setOrders(res.data);
+    } catch (err) {
+      console.error('فشل تحميل الطلبات:', err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const handleCompleteOrder = async (orderId) => {
+    try {
+      await axios.put(`${API_URL}/admin/orders/${orderId}/complete`);
+      setOrders(prev =>
+        prev.map(o => (o.order_id === orderId ? { ...o, status: 'مكتمل' } : o))
+      );
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء إنهاء الطلب، حاول مرة أخرى');
+    }
+  };
 
   // معالجة رفع الملفات من جهاز الكمبيوتر
   const handleImageUpload = (e) => {
@@ -75,20 +110,70 @@ export default function AdminDashboard() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-700">
               <PackageCheck className="text-emerald-600" /> طلبات العملاء
             </h2>
-            <div className="bg-white border-r-4 border-amber-500 p-5 rounded-2xl shadow-sm mb-4">
-              <div className="flex justify-between items-start border-b pb-2 mb-3">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">محل السعادة</h3>
-                  <p className="text-xs text-slate-500">العميل: أحمد | هاتف: 0791234567</p>
+
+            {loadingOrders && (
+              <p className="text-sm text-slate-500">جارِ تحميل الطلبات...</p>
+            )}
+
+            {!loadingOrders && orders.length === 0 && (
+              <p className="text-sm text-slate-500 bg-white p-4 rounded-xl border">لا يوجد طلبات حالياً.</p>
+            )}
+
+            {orders.map((order) => {
+              const isCompleted = order.status === 'مكتمل';
+              return (
+                <div
+                  key={order.order_id}
+                  className={`bg-white border-r-4 ${isCompleted ? 'border-emerald-500' : 'border-amber-500'} p-5 rounded-2xl shadow-sm mb-4`}
+                >
+                  <div className="flex justify-between items-start border-b pb-2 mb-3">
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">{order.shop_name}</h3>
+                      <p className="text-xs text-slate-500">العميل: {order.username} | هاتف: {order.phone}</p>
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-slate-600 mb-3 space-y-1">
+                    {Array.isArray(order.items) && order.items.length > 0 ? (
+                      order.items.map((it, idx) => (
+                        <p key={idx}>
+                          • {it.name || it.item_name || 'صنف'}
+                          {it.size ? ` (${it.size} كيلو)` : ''}
+                          {it.qty ? ` × ${it.qty}` : ''}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400">لا توجد تفاصيل أصناف</p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center font-bold pt-2 border-t text-sm mb-3">
+                    <span>المجموع:</span>
+                    <span className="text-emerald-600 text-base">{order.total_price} د.أ</span>
+                  </div>
+
+                  {isCompleted ? (
+                    <div className="w-full bg-emerald-50 text-emerald-700 font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4" /> تم إنهاء الطلب
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleCompleteOrder(order.order_id)}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer transition"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> إنهاء الطلب
+                    </button>
+                  )}
                 </div>
-                <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full">قيد الانتظار</span>
-              </div>
-              <p className="text-sm text-slate-600 mb-3">• عدس حب (2 كيلو) × 3 حبة</p>
-              <div className="flex justify-between items-center font-bold pt-2 border-t text-sm">
-                <span>المجموع:</span>
-                <span className="text-emerald-600 text-base">18.5 د.أ</span>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* عرض المنتجات مثل العميل */}

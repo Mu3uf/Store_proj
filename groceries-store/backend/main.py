@@ -94,4 +94,12 @@ def get_admin_orders(db: Session = Depends(get_db)):
             "total_price": o.total_price,
             "status": o.status
         })
+        @app.put("/admin/orders/{order_id}/complete")
+def complete_order(order_id: int, db: Session = Depends(get_db)):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="الطلب غير موجود")
+    order.status = "مكتمل"
+    db.commit()
+    return {"message": "تم إنهاء الطلب بنجاح"}
     return results
