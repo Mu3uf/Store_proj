@@ -74,10 +74,20 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
 
 @app.post("/orders")
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    new_order = models.Order(**order.model_dump())
-    db.add(new_order)
-    db.commit()
-    return {"message": "تم إرسال طلبك بنجاح"}
+    try:
+        new_order = models.Order(
+            user_id=order.user_id,
+            items_details=order.items_details,
+            total_price=order.total_price,
+            status="قيد الانتظار"
+        )
+        db.add(new_order)
+        db.commit()
+        db.refresh(new_order)
+        return {"message": "تم إرسال طلبك بنجاح"}
+    except Exception as e:
+        print("CRITICAL ORDER ERROR:", str(e))
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/admin/orders")
 def get_admin_orders(db: Session = Depends(get_db)):
