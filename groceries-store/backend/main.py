@@ -114,3 +114,8 @@ def complete_order(order_id: int, db: Session = Depends(get_db)):
     order.status = "مكتمل"
     db.commit()
     return {"message": "تم إنهاء الطلب بنجاح"}
+@app.delete("/admin/clear-orders")
+def clear_orders(db: Session = Depends(get_db)):
+    db.query(models.Order).delete()
+    db.commit()
+    return {"message": "تم حذف جميع الطلبات بنجاح"}
