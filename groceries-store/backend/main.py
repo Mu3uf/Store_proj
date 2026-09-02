@@ -94,18 +94,18 @@ def get_admin_orders(db: Session = Depends(get_db)):
     orders = db.query(models.Order).all()
     results = []
     for o in orders:
+        # البحث عن العميل المرتبط بالطلب مع حماية لو كان المستخدم غير موجود
         user = db.query(models.User).filter(models.User.id == o.user_id).first()
         results.append({
             "order_id": o.id,
-            "username": user.username if user else "غير معروف",
-            "phone": user.phone if user else "-",
-            "shop_name": user.shop_name if user else "-",
+            "username": user.username if user and user.username else "عميل زائر / غير معروف",
+            "phone": user.phone if user and user.phone else "-",
+            "shop_name": user.shop_name if user and user.shop_name else "-",
             "items": o.items_details,
             "total_price": o.total_price,
             "status": o.status
         })
     return results
-
 @app.put("/admin/orders/{order_id}/complete")
 def complete_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
