@@ -4,7 +4,8 @@ export default function ItemCard({ item, onOrder }) {
   const [selectedSize, setSelectedSize] = useState(item.available_sizes[0]);
   const [qty, setQty] = useState(1);
 
-  const totalPrice = (item.price_per_kg * selectedSize * qty).toFixed(2);
+  // حساب السعر كـ رقم حقيقي (Number) وليس نص
+  const rawTotalPrice = item.price_per_kg * selectedSize * qty;
 
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-200 hover:shadow-xl transition flex flex-col justify-between">
@@ -45,10 +46,10 @@ export default function ItemCard({ item, onOrder }) {
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
           <div>
             <span className="text-xs text-slate-400 block">السعر الإجمالي</span>
-            <span className="text-2xl font-black text-emerald-600">{totalPrice} د.أ</span>
+            <span className="text-2xl font-black text-emerald-600">{rawTotalPrice.toFixed(2)} د.أ</span>
           </div>
           <button 
-            onClick={() => onOrder(item, selectedSize, qty, totalPrice)}
+            onClick={() => onOrder(item, selectedSize, qty, rawTotalPrice)}
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer"
           >
             طلب
