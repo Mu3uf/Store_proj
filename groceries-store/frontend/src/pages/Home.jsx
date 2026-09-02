@@ -40,11 +40,19 @@ export default function Home({ user, onOpenAuth, onLogout }) {
     if (cart.length === 0) return;
     try {
       setLoadingCheckout(true);
-      const totalOrderPrice = cart.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+      const totalOrderPrice = cart.reduce((sum, item) => sum + (item?.totalPrice || 0), 0);
+
+      // تجهيز تفاصيل المنتجات بشكل نظيف وخفيف للباك إند
+      const cleanItems = cart.map(item => ({
+        name: item.name,
+        size: item.size,
+        qty: item.qty,
+        totalPrice: item.totalPrice
+      }));
 
       await axios.post(`${API_URL}/orders`, {
-        user_id: user.user_id,
-        items_details: cart,
+        user_id: user?.user_id || user?.id || 1,
+        items_details: cleanItems,
         total_price: totalOrderPrice
       });
 
@@ -52,7 +60,7 @@ export default function Home({ user, onOpenAuth, onLogout }) {
       setCart([]);
       setIsCartOpen(false);
     } catch (err) {
-      console.error('خطأ في إرسال الطلب:', err);
+      console.error('خطأ في إرسال الطلب:', err?.response?.data || err.message);
       alert('فشل إرسال الطلب، تأكد من اتصالك بالسيرفر.');
     } finally {
       setLoadingCheckout(false);
