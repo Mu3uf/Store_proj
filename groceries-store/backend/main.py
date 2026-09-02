@@ -61,7 +61,8 @@ def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
     new_item = models.Item(**item.model_dump())
     db.add(new_item)
     db.commit()
-    return {"message": "تم إضافة العنصر بنجاح"}
+    db.refresh(new_item)
+    return {"message": "تم إضافة العنصر بنجاح", "item": new_item}
 
 @app.delete("/admin/items/{item_id}")
 def delete_item(item_id: int, db: Session = Depends(get_db)):
@@ -94,7 +95,9 @@ def get_admin_orders(db: Session = Depends(get_db)):
             "total_price": o.total_price,
             "status": o.status
         })
-        @app.put("/admin/orders/{order_id}/complete")
+    return results
+
+@app.put("/admin/orders/{order_id}/complete")
 def complete_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
@@ -102,4 +105,3 @@ def complete_order(order_id: int, db: Session = Depends(get_db)):
     order.status = "مكتمل"
     db.commit()
     return {"message": "تم إنهاء الطلب بنجاح"}
-    return results

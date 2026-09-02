@@ -1,0 +1,15 @@
+[33m692e53a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Update admin items and orders
+[33ma95571e[m Add temporary clear orders endpoint
+[33m9cc0de7[m Fix admin orders endpoint to securely fetch client username and phone
+[33mc72290f[m Final fix for cart and order submission
+[33mc20ddb7[m Fix order creation endpoint with explicit status and exception handling
+[33m1764faa[m Fix item price data type to prevent cart white screen crash
+[33m27ecdac[m Fix cart view error and update Baharati store
+[33m4ebfe20[m Finalize Baharati store with admin order management
+[33mc8c9c91[m remove node_modules from git tracking
+[33med698fa[m update pydantic requirements for python 3.14
+[33m7a6e090[m add runtime.txt to root directory
+[33mb0e88a0[m ضبط نسخة البايثون في runtime.txt
+[33m5584fe9[m Upload all files
+[33m187d34e[m Project Completed
+[33mc52b3ce[m Initial commit

@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+
+const API_URL = 'https://store-proj.onrender.com';
 
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,21 +12,39 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     password: '',
     confirmPassword: ''
   });
+  const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      alert('كلمات السر غير متطابقة!');
-      return;
+    setErrorMsg('');
+
+    try {
+      if (isLogin) {
+        const res = await axios.post(`${API_URL}/login`, {
+          username_or_phone: formData.username,
+          password: formData.password
+        });
+        onLoginSuccess(res.data);
+        onClose();
+      } else {
+        if (formData.password !== formData.confirmPassword) {
+          setErrorMsg('كلمات السر غير متطابقة!');
+          return;
+        }
+        await axios.post(`${API_URL}/register`, {
+          username: formData.username,
+          phone: formData.phone,
+          shop_name: formData.shop_name,
+          password: formData.password
+        });
+        alert('تم إنشاء الحساب بنجاح، يمكنك تسجيل الدخول الآن');
+        setIsLogin(true);
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.detail || 'حدث خطأ، تأكد من البيانات');
     }
-    // تسجيل دخول تجريبي
-    onLoginSuccess({
-      username: formData.username || 'عميل تجريبي',
-      shop_name: formData.shop_name || 'محل البركة'
-    });
-    onClose();
   };
 
   return (
@@ -32,6 +53,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
         <h2 className="text-2xl font-bold mb-4 text-center text-slate-800">
           {isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
         </h2>
+
+        {errorMsg && (
+          <div className="bg-red-100 text-red-700 text-sm p-2.5 rounded-lg mb-3 text-center font-bold">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {!isLogin && (
@@ -48,7 +75,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           )}
 
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1 block">اسم المستخدم أو رقم الهاتف *</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">
+              {isLogin ? 'اسم المستخدم أو رقم الهاتف *' : 'اسم المستخدم *'}
+            </label>
             <input required type="text" className="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" onChange={e => setFormData({...formData, username: e.target.value})} />
           </div>
 
