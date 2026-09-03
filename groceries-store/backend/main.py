@@ -2,11 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas, auth
-from database import engine, get_db
-
-models.Base.metadata.create_all(bind=engine)
-from database import SessionLocal # تأكد من استيراد SessionLocal إذا لم تكن موجودة
-import auth
+from database import engine, get_db, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -14,16 +10,15 @@ models.Base.metadata.create_all(bind=engine)
 def create_default_admin():
     db = SessionLocal()
     try:
-        # ابحث عن حساب الأدمن الثابت (مثلاً باسم admin أو رقم محدد)
         admin_user = db.query(models.User).filter(models.User.username == "admin").first()
         if not admin_user:
-            hashed_pwd = auth.get_password_hash("admin1234") # كلمة السر الافتراضية للأدمن
+            hashed_pwd = auth.get_password_hash("admin1234")
             new_admin = models.User(
                 username="admin",
                 phone="0700000000",
                 shop_name="مدير المتجر الرئيسي",
                 hashed_password=hashed_pwd,
-                role="admin" # تحديد الصلاحية أدمن
+                role="admin"
             )
             db.add(new_admin)
             db.commit()
@@ -33,7 +28,6 @@ def create_default_admin():
     finally:
         db.close()
 
-# تنفيذ الدالة عند تشغيل السيرفر
 create_default_admin()
 
 app = FastAPI(title="متجر البقوليات والبهارات")
@@ -94,6 +88,23 @@ def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
     db.refresh(new_item)
     return {"message": "تم إضافة العنصر بنجاح", "item": new_item}
 
+# إضافة مسار تعديل العنصر للأدمن
+@app.put("/admin/items/{item_id}")
+def update_item(item_id: int, item_data: schemas.ItemCreate, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="العنصر غير موجود")
+    
+    item.name = item_data.name
+    item.category_id = item_data.category_id
+    item.price_per_kg = item_data.price_per_kg
+    item.image_url = item_data.image_url
+    item.available_sizes = item_data.available_sizes
+    
+    db.commit()
+    db.refresh(item)
+    return {"message": "تم تحديث العنصر بنجاح", "item": item}
+
 @app.delete("/admin/items/{item_id}")
 def delete_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(models.Item).filter(models.Item.id == item_id).first()
@@ -127,11 +138,13 @@ def get_admin_orders(db: Session = Depends(get_db)):
         })
     return results
 
+# تعديل مسار إنهاء الطلب ليقوم بحذفه نهائياً من قاعدة البيانات عند إتمامه
+@app.delete("/admin/orders/{order_id}")
 @app.put("/admin/orders/{order_id}/complete")
-def complete_order(order_id: int, db: Session = Depends(get_db)):
+def delete_or_complete_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="الطلب غير موجود")
-    order.status = "مكتمل"
+    db.delete(order)
     db.commit()
-    return {"message": "تم إنهاء الطلب بنجاح"}
+    return {"message": "تم إنهاء وحذف الطلب من قاعدة البيانات بنجاح"}

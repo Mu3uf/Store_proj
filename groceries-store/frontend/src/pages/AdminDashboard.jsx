@@ -39,15 +39,14 @@ export default function AdminDashboard() {
     }
   };
 
+  // تعديل إنهاء الطلب ليقوم بحذفه نهائياً من قاعدة البيانات والواجهة كما طلبت
   const handleCompleteOrder = async (orderId) => {
     try {
-      await axios.put(`${API_URL}/admin/orders/${orderId}/complete`);
-      setOrders(prev =>
-        prev.map(o => (o.order_id === orderId ? { ...o, status: 'مكتمل' } : o))
-      );
+      await axios.delete(`${API_URL}/admin/orders/${orderId}`);
+      setOrders(prev => prev.filter(o => o.order_id !== orderId));
     } catch (err) {
       console.error(err);
-      alert('حدث خطأ أثناء إنهاء الطلب، حاول مرة أخرى');
+      alert('حدث خطأ أثناء إنهاء وحذف الطلب، حاول مرة أخرى');
     }
   };
 
@@ -79,8 +78,15 @@ export default function AdminDashboard() {
 
     try {
       if (editingItem) {
-        // تحديث محلي أو إضافة مسار تحديث لو أردت
-        setItems(items.map(i => i.id === editingItem.id ? { ...i, ...formData, price_per_kg: parseFloat(formData.price_per_kg) } : i));
+        // تحديث الصنف الموجود
+        const res = await axios.put(`${API_URL}/admin/items/${editingItem.id}`, {
+          category_id: parseInt(formData.category_id),
+          name: formData.name,
+          image_url: formData.image_url,
+          price_per_kg: parseFloat(formData.price_per_kg),
+          available_sizes: formData.available_sizes
+        });
+        setItems(items.map(i => i.id === editingItem.id ? res.data.item : i));
       } else {
         const res = await axios.post(`${API_URL}/admin/items`, {
           category_id: parseInt(formData.category_id),
@@ -133,17 +139,13 @@ export default function AdminDashboard() {
             {!loadingOrders && orders.length === 0 && <p className="text-sm text-slate-500 bg-white p-4 rounded-xl border">لا يوجد طلبات حالياً.</p>}
 
             {orders.map((order) => {
-              const isCompleted = order.status === 'مكتمل';
               return (
-                <div key={order.order_id} className={`bg-white border-r-4 ${isCompleted ? 'border-emerald-500' : 'border-amber-500'} p-5 rounded-2xl shadow-sm mb-4`}>
+                <div key={order.order_id} className="bg-white border-r-4 border-emerald-500 p-5 rounded-2xl shadow-sm mb-4">
                   <div className="flex justify-between items-start border-b pb-2 mb-3">
                     <div>
                       <h3 className="font-bold text-lg text-slate-800">{order.shop_name}</h3>
                       <p className="text-xs text-slate-500">العميل: {order.username} | هاتف: {order.phone}</p>
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                      {order.status}
-                    </span>
                   </div>
 
                   <div className="text-sm text-slate-600 mb-3 space-y-1">
@@ -157,18 +159,12 @@ export default function AdminDashboard() {
                     <span className="text-emerald-600 text-base">{order.total_price} د.أ</span>
                   </div>
 
-                  {isCompleted ? (
-                    <div className="w-full bg-emerald-50 text-emerald-700 font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4" /> تم إنهاء الطلب
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleCompleteOrder(order.order_id)}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer transition"
-                    >
-                      <CheckCircle2 className="w-4 h-4" /> إنهاء الطلب
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleCompleteOrder(order.order_id)}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-sm cursor-pointer transition"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> إنهاء الطلب (حذف من النظام)
+                  </button>
                 </div>
               );
             })}
@@ -181,6 +177,10 @@ export default function AdminDashboard() {
               {items.map((item) => (
                 <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between relative">
                   <div className="absolute top-3 left-3 z-10 flex gap-2">
+                    {/* زر التعديل بجانب زر الحذف للأدمن */}
+                    <button onClick={() => handleOpenModal(item)} className="bg-white/90 hover:bg-white text-slate-700 p-2 rounded-xl shadow cursor-pointer transition">
+                      <Edit3 className="w-4 h-4 text-blue-600" />
+                    </button>
                     <button onClick={() => handleDeleteItem(item.id)} className="bg-white/90 hover:bg-white text-slate-700 p-2 rounded-xl shadow cursor-pointer transition">
                       <Trash2 className="w-4 h-4 text-red-600" />
                     </button>
@@ -203,12 +203,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* مودال الإضافة */}
+      {/* مودال الإضافة والتعديل */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl relative" dir="rtl">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h3 className="text-lg font-bold text-slate-800">إضافة صنف جديد</h3>
+              <h3 className="text-lg font-bold text-slate-800">{editingItem ? 'تعديل الصنف' : 'إضافة صنف جديد'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
                 {formData.image_url && <img src={formData.image_url} alt="معاينة" className="mt-2 w-full h-24 object-cover rounded-lg border" />}
               </div>
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer">
-                حفظ الصنف
+                {editingItem ? 'تحديث الصنف' : 'حفظ الصنف'}
               </button>
             </form>
           </div>
